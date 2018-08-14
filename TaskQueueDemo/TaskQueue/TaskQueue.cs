@@ -39,6 +39,11 @@ namespace TaskQueueDemo.TaskQueue
         public event EventHandler QueueStoped;// { add { } remove { } }
 
         /// <summary>
+        /// 队列进入空闲状态
+        /// </summary>
+        public event EventHandler Idle;// { add { } remove { } }
+
+        /// <summary>
         /// 任务队列名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
@@ -115,8 +120,6 @@ namespace TaskQueueDemo.TaskQueue
         {
             if (TaskWorker.IsBusy) return;
 
-            Console.WriteLine($"<{Name}> 队列信号量 Start-Set()");
-            QueueEvent.Set();
             TaskWorker.RunWorkerAsync();
             QueueStarted?.Invoke(this, null);
         }
@@ -151,7 +154,8 @@ namespace TaskQueueDemo.TaskQueue
                     if (TaskCount == 0)
                     {
                         Console.WriteLine($"<{Name}> 队列信号量 Execute-WaitOne");
-                        //TODO: 触发空闲事件
+                        //队列进入空闲状态，触发空闲事件
+                        Idle?.Invoke(this, null);
                         QueueEvent.WaitOne();
                         //WaitOne 之后要先 continue 一次
                         continue;

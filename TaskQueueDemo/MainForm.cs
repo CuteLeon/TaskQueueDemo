@@ -33,6 +33,9 @@ namespace TaskQueueDemo
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}>有任务出队，剩余任务个数：[{((TaskQueue<MessageTask>)s).TaskCount}]");
             });
              */
+            MessageQueue.Idle += new EventHandler((s, v)=> {
+                Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 进入空闲状态 ...");
+            });
             MessageQueue.QueueStarted += new EventHandler((s, v) => {
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务开始执行 ...");
             });
@@ -52,7 +55,7 @@ namespace TaskQueueDemo
         {
             //测试并发任务入队
             Console.WriteLine("并行入队 10 个任务...");
-            Parallel.For(0, 500, new Action<int>(index => {
+            Parallel.For(0, 10, new Action<int>(index => {
                 MessageQueue.Enqueue(new MessageTask($"消息任务-{index}"));
             }));
             Console.WriteLine($"队列内任务数量：{MessageQueue.TaskCount}");
