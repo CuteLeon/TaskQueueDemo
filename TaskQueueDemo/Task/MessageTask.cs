@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TaskQueueDemo.Task
@@ -10,6 +11,10 @@ namespace TaskQueueDemo.Task
     {
         public MessageTask(string name) : base(name) { }
 
-        public override void Execute() => Console.WriteLine($"[{Name}] 执行任务完成！");
+        public override void Execute()
+        {
+            //Thread.Sleep(new Random().Next(500));
+            Console.WriteLine($"[{Name}] 执行任务完成！");
+        }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using TaskQueueDemo.Task;
@@ -15,6 +16,8 @@ namespace TaskQueueDemo.TaskQueue
     /// </summary>
     public class TaskQueue<T> where T : UnitTask
     {
+        //TODO: IDispose 释放worker和list和event
+
         /// <summary>
         /// 有任务入队事件
         /// </summary>
@@ -63,7 +66,13 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public int TaskCount { get => tasks.Count; }
 
-        public TaskQueue(string name) => Name = name;
+        public TaskQueue(string name)
+        {
+            Name = name;
+
+            TaskWorker.DoWork += ExecuteTasks;
+            TaskWorker.RunWorkerCompleted += ExecuteFinished;
+        }
 
         /// <summary>
         /// 任务入队
@@ -97,6 +106,7 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Start()
         {
+            TaskWorker.RunWorkerAsync();
             QueueStarted?.Invoke(this, null);
 
             //TODO: 使用信号量控制，防止队列循环空转
@@ -107,10 +117,42 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Stop()
         {
-            //TODO:任务队列停止执行
+            TaskWorker.CancelAsync();
             QueueStoped?.Invoke(this, null);
 
             //TODO: 使用信号量控制，防止队列循环空转
+        }
+
+        /// <summary>
+        /// 开始轮询执行任务
+        /// </summary>
+        private void ExecuteTasks(object sender, DoWorkEventArgs e)
+        {
+            Console.WriteLine($"<{Name}> 内 Worker 启动...");
+            while (true)
+            {
+                Thread.Sleep(1000);
+                Console.WriteLine($"<{Name}> 队列内任务数：{TaskCount}");
+
+                if ((sender as BackgroundWorker).CancellationPending) return;
+                if (TaskCount == 0) continue;
+
+                T task = Dequeue();
+                if (task == null) continue;
+
+                task.Execute();
+                
+            }
+        }
+
+        /// <summary>
+        /// 任务轮询结束
+        /// </summary>
+        private void ExecuteFinished(object sender, RunWorkerCompletedEventArgs e)
+        {
+            //TODO: 增加任务结束控制
+            Console.WriteLine($"<{Name}> 内 Worker 停止...");
+            Console.WriteLine($"<{Name}> 队列内剩余任务数：{TaskCount}");
         }
 
     }
