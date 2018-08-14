@@ -22,7 +22,11 @@ namespace TaskQueueDemo
         {
             InitializeComponent();
             Console.WriteLine("注册事件...");
-            this.FormClosing += (s, v) => { MessageQueue.Stop(); };
+            this.FormClosing += (s, v) => {
+                MessageQueue.Stop();
+                MessageQueue.Dispose();
+                MessageBox.Show((MessageQueue==null).ToString());
+            };
             /*
             MessageQueue.TaskEnqueued += new EventHandler<MessageTask>((s, v) => {
                 this.Invoke(new Action(()=> { this.Text = MessageQueue.TaskCount.ToString(); }));
@@ -42,8 +46,6 @@ namespace TaskQueueDemo
             MessageQueue.QueueStoped += new EventHandler((s, v) => {
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务停止执行 ...");
             });
-
-            //MessageQueue.Start();
         }
 
         public void ShowTaskQueue()

@@ -14,10 +14,8 @@ namespace TaskQueueDemo.TaskQueue
     /// <summary>
     /// 任务队列
     /// </summary>
-    public class TaskQueue<T> where T : UnitTask
+    public class TaskQueue<T> : IDisposable where T : UnitTask
     {
-        //TODO: IDispose 释放worker和list和event和信号量
-
         /// <summary>
         /// 有任务入队事件
         /// </summary>
@@ -183,6 +181,19 @@ namespace TaskQueueDemo.TaskQueue
 
             if (e.Error != null) Console.WriteLine($"<{Name}> 队列内发生异常：{e.Error.Message}");
         }
+
+        #region IDisposable Support
+
+        public void Dispose()
+        {
+            Stop();
+            TaskWorker.Dispose();
+            while (tasks.TryDequeue(out T task)) { }
+            tasks = null;
+            QueueEvent.Close();
+            GC.SuppressFinalize(this);
+        }
+        #endregion
 
     }
 }
