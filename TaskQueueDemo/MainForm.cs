@@ -21,10 +21,10 @@ namespace TaskQueueDemo
         public MainForm()
         {
             InitializeComponent();
-
+            Console.WriteLine("注册事件...");
             this.FormClosing += (s, v) => { MessageQueue.Stop(); };
-            MessageQueue.TaskEnqueued += new EventHandler<MessageTask>((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 入队了新任务：[{v.Name}]"); });
-            MessageQueue.TaskDequeued += new EventHandler((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}>有任务出队，剩余任务个数：[{((TaskQueue<MessageTask>)s).TaskCount}]"); });
+            //MessageQueue.TaskEnqueued += new EventHandler<MessageTask>((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 入队了新任务：[{v.Name}]"); });
+            //MessageQueue.TaskDequeued += new EventHandler((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}>有任务出队，剩余任务个数：[{((TaskQueue<MessageTask>)s).TaskCount}]"); });
             MessageQueue.QueueStarted += new EventHandler((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务开始执行 ..."); });
             MessageQueue.QueueStoped += new EventHandler((s, v) => { Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务停止执行 ..."); });
 
@@ -34,12 +34,14 @@ namespace TaskQueueDemo
         private void button1_Click(object sender, EventArgs e)
         {
             //测试并发任务入队
-            Parallel.For(0, 100, new Action<int>(index => {
+            Console.WriteLine("并行入队任务...");
+            Parallel.For(0, 10000, new Action<int>(index => {
                 MessageQueue.Enqueue(new MessageTask($"消息任务-{index}"));
             }));
+            Console.WriteLine($"队列内任务数量：{MessageQueue.TaskCount}");
 
             //MessageQueue.Dequeue();
-            ShowTaskQueue();
+            //ShowTaskQueue();
 
         }
 

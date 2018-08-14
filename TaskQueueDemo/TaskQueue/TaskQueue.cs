@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,12 +44,20 @@ namespace TaskQueueDemo.TaskQueue
         /// 任务列表（线程安全）
         /// </summary>
         private ConcurrentQueue<T> tasks { get; set; } = new ConcurrentQueue<T>();
-
-        /// <summary>
         /// 任务列表（只读）
         /// </summary>
         public T[] Tasks { get => tasks.ToArray(); }
 
+        /// <summary>
+        /// 任务执行线程
+        /// </summary>
+        private BackgroundWorker TaskWorker = new BackgroundWorker()
+        {
+            WorkerReportsProgress = false,
+            WorkerSupportsCancellation = true
+        };
+        
+        /// <summary>
         /// <summary>
         /// 队列内任务总数
         /// </summary>
@@ -88,7 +97,6 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Start()
         {
-            //TODO:任务队列开始执行
             QueueStarted?.Invoke(this, null);
 
             //TODO: 使用信号量控制，防止队列循环空转

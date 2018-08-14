@@ -17,5 +17,10 @@ namespace TaskQueueDemo.Task
         public string Name { get; set; } = string.Empty;
         public UnitTask(string name) => Name = name;
         public override string ToString() => $"任务：{Name}";
+
+        /// <summary>
+        /// 执行任务
+        /// </summary>
+        public abstract void Execute();
     }
 }
