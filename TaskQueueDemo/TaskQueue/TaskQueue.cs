@@ -62,6 +62,8 @@ namespace TaskQueueDemo.TaskQueue
         /// <param name="task"></param>
         public void Enqueue(T task)
         {
+            //TODO: 使用信号量控制，防止队列循环空转
+
             if (task == null) return;
             tasks.Enqueue(task);
             
@@ -74,6 +76,8 @@ namespace TaskQueueDemo.TaskQueue
         /// <returns></returns>
         public T Dequeue()
         {
+            //TODO: 使用信号量控制，防止队列循环空转
+
             bool result = tasks.TryDequeue(out T task);
             if (result) TaskDequeued?.Invoke(this, null);
             return task;
@@ -86,6 +90,8 @@ namespace TaskQueueDemo.TaskQueue
         {
             //TODO:任务队列开始执行
             QueueStarted?.Invoke(this, null);
+
+            //TODO: 使用信号量控制，防止队列循环空转
         }
 
         /// <summary>
@@ -95,6 +101,8 @@ namespace TaskQueueDemo.TaskQueue
         {
             //TODO:任务队列停止执行
             QueueStoped?.Invoke(this, null);
+
+            //TODO: 使用信号量控制，防止队列循环空转
         }
 
     }
