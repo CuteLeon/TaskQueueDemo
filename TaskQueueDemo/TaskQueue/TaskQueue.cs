@@ -16,7 +16,7 @@ namespace TaskQueueDemo.TaskQueue
     /// </summary>
     public class TaskQueue<T> where T : UnitTask
     {
-        //TODO: IDispose 释放worker和list和event
+        //TODO: IDispose 释放worker和list和event和信号量
 
         /// <summary>
         /// 有任务入队事件
@@ -59,8 +59,12 @@ namespace TaskQueueDemo.TaskQueue
             WorkerReportsProgress = false,
             WorkerSupportsCancellation = true
         };
-        
+
         /// <summary>
+        /// 任务控制信号量（防止队列循环空转）
+        /// </summary>
+        private volatile AutoResetEvent QueueEvent = new AutoResetEvent(false);
+        
         /// <summary>
         /// 队列内任务总数
         /// </summary>
@@ -80,11 +84,16 @@ namespace TaskQueueDemo.TaskQueue
         /// <param name="task"></param>
         public void Enqueue(T task)
         {
-            //TODO: 使用信号量控制，防止队列循环空转
-
+            //TODO: 此处有问题，任务并行入队时会造成重复 Set()
             if (task == null) return;
+            //先将任务入队，再将信号量放行，否则容易导致放行后因为任务还未入队而又陷入阻塞
+            if (TaskCount == 0)
+            {
+                Console.WriteLine($"<{Name}> 队列信号量 Enqueue-Set()");
+                QueueEvent.Set();
+            }
             tasks.Enqueue(task);
-            
+
             TaskEnqueued?.Invoke(this, task);
         }
 
@@ -94,8 +103,6 @@ namespace TaskQueueDemo.TaskQueue
         /// <returns></returns>
         public T Dequeue()
         {
-            //TODO: 使用信号量控制，防止队列循环空转
-
             bool result = tasks.TryDequeue(out T task);
             if (result) TaskDequeued?.Invoke(this, null);
             return task;
@@ -106,10 +113,12 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Start()
         {
+            if (TaskWorker.IsBusy) return;
+
+            Console.WriteLine($"<{Name}> 队列信号量 Start-Set()");
+            QueueEvent.Set();
             TaskWorker.RunWorkerAsync();
             QueueStarted?.Invoke(this, null);
-
-            //TODO: 使用信号量控制，防止队列循环空转
         }
 
         /// <summary>
@@ -117,10 +126,11 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Stop()
         {
+            if (!TaskWorker.IsBusy) return;
             TaskWorker.CancelAsync();
+            Console.WriteLine($"<{Name}> 队列信号量 Stop-Set()");
+            QueueEvent.Set();
             QueueStoped?.Invoke(this, null);
-
-            //TODO: 使用信号量控制，防止队列循环空转
         }
 
         /// <summary>
@@ -129,19 +139,33 @@ namespace TaskQueueDemo.TaskQueue
         private void ExecuteTasks(object sender, DoWorkEventArgs e)
         {
             Console.WriteLine($"<{Name}> 内 Worker 启动...");
+
             while (true)
             {
-                Thread.Sleep(1000);
-                Console.WriteLine($"<{Name}> 队列内任务数：{TaskCount}");
+                try
+                {
+                    //Thread.Sleep(1000);
+                    Console.WriteLine($"<{Name}> 队列内任务数：{TaskCount}");
 
-                if ((sender as BackgroundWorker).CancellationPending) return;
-                if (TaskCount == 0) continue;
+                    if ((sender as BackgroundWorker).CancellationPending) return;
+                    if (TaskCount == 0)
+                    {
+                        Console.WriteLine($"<{Name}> 队列信号量 Execute-WaitOne");
+                        //TODO: 触发空闲事件
+                        QueueEvent.WaitOne();
+                        //WaitOne 之后要先 continue 一次
+                        continue;
+                    }
 
-                T task = Dequeue();
-                if (task == null) continue;
+                    T task = Dequeue();
+                    if (task == null) continue;
 
-                task.Execute();
-                
+                    task.Execute();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"<{Name}> 队列内发生异常：{ex.Message}");
+                }
             }
         }
 
@@ -150,9 +174,10 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         private void ExecuteFinished(object sender, RunWorkerCompletedEventArgs e)
         {
-            //TODO: 增加任务结束控制
             Console.WriteLine($"<{Name}> 内 Worker 停止...");
             Console.WriteLine($"<{Name}> 队列内剩余任务数：{TaskCount}");
+
+            if (e.Error != null) Console.WriteLine($"<{Name}> 队列内发生异常：{e.Error.Message}");
         }
 
     }

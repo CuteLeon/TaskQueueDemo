@@ -52,7 +52,7 @@ namespace TaskQueueDemo
         {
             //测试并发任务入队
             Console.WriteLine("并行入队 10 个任务...");
-            Parallel.For(0, 10, new Action<int>(index => {
+            Parallel.For(0, 500, new Action<int>(index => {
                 MessageQueue.Enqueue(new MessageTask($"消息任务-{index}"));
             }));
             Console.WriteLine($"队列内任务数量：{MessageQueue.TaskCount}");
