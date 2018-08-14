@@ -68,7 +68,7 @@ namespace TaskQueueDemo.TaskQueue
         /// <summary>
         /// 任务控制信号量（防止队列循环空转）
         /// </summary>
-        private volatile AutoResetEvent QueueEvent = new AutoResetEvent(false);
+        private volatile ManualResetEvent QueueEvent = new ManualResetEvent(false);
         
         /// <summary>
         /// 队列内任务总数
@@ -78,7 +78,7 @@ namespace TaskQueueDemo.TaskQueue
         public TaskQueue(string name)
         {
             Name = name;
-
+            
             TaskWorker.DoWork += ExecuteTasks;
             TaskWorker.RunWorkerCompleted += ExecuteFinished;
         }
@@ -89,9 +89,8 @@ namespace TaskQueueDemo.TaskQueue
         /// <param name="task"></param>
         public void Enqueue(T task)
         {
-            //TODO: 此处有问题，任务并行入队时会造成重复 Set()
             if (task == null) return;
-            //先将任务入队，再将信号量放行，否则容易导致放行后因为任务还未入队而又陷入阻塞
+
             if (TaskCount == 0)
             {
                 Console.WriteLine($"<{Name}> 队列信号量 Enqueue-Set()");
@@ -156,6 +155,7 @@ namespace TaskQueueDemo.TaskQueue
                         Console.WriteLine($"<{Name}> 队列信号量 Execute-WaitOne");
                         //队列进入空闲状态，触发空闲事件
                         Idle?.Invoke(this, null);
+                        QueueEvent.Reset();
                         QueueEvent.WaitOne();
                         //WaitOne 之后要先 continue 一次
                         continue;
