@@ -25,7 +25,6 @@ namespace TaskQueueDemo
             this.FormClosing += (s, v) => {
                 MessageQueue.Stop();
                 MessageQueue.Dispose();
-                MessageBox.Show((MessageQueue==null).ToString());
             };
             /*
             MessageQueue.TaskEnqueued += new EventHandler<MessageTask>((s, v) => {

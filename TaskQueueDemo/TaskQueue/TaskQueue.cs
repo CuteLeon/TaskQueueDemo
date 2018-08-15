@@ -71,7 +71,7 @@ namespace TaskQueueDemo.TaskQueue
         /// <summary>
         /// 队列内任务总数
         /// </summary>
-        public int TaskCount { get => tasks.Count; }
+        public int TaskCount { get => tasks?.Count() ?? 0; }
 
         public TaskQueue(string name)
         {
@@ -191,6 +191,8 @@ namespace TaskQueueDemo.TaskQueue
             while (tasks.TryDequeue(out T task)) { }
             tasks = null;
             QueueEvent.Close();
+            
+            //TODO: 感觉这里不太对...
             GC.SuppressFinalize(this);
         }
         #endregion
