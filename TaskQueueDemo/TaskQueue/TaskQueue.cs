@@ -118,7 +118,6 @@ namespace TaskQueueDemo.TaskQueue
             if (TaskWorker.IsBusy) return;
 
             TaskWorker.RunWorkerAsync();
-            QueueStarted?.Invoke(this, null);
         }
 
         /// <summary>
@@ -130,7 +129,6 @@ namespace TaskQueueDemo.TaskQueue
             TaskWorker.CancelAsync();
             Console.WriteLine($"<{Name}> 队列信号量 Stop-Set()");
             QueueEvent.Set();
-            QueueStoped?.Invoke(this, null);
         }
 
         /// <summary>
@@ -138,6 +136,7 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         private void ExecuteTasks(object sender, DoWorkEventArgs e)
         {
+            QueueStarted?.Invoke(this, null);
             Console.WriteLine($"<{Name}> 内 Worker 启动...");
 
             while (true)
@@ -180,6 +179,7 @@ namespace TaskQueueDemo.TaskQueue
             Console.WriteLine($"<{Name}> 队列内剩余任务数：{TaskCount}");
 
             if (e.Error != null) Console.WriteLine($"<{Name}> 队列内发生异常：{e.Error.Message}");
+            QueueStoped?.Invoke(this, null);
         }
 
         #region IDisposable Support
