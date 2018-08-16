@@ -39,10 +39,10 @@ namespace TaskQueueDemo
             MessageQueue.Idle += new EventHandler((s, v)=> {
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 进入空闲状态 ...");
             });
-            MessageQueue.QueueStarted += new EventHandler((s, v) => {
+            MessageQueue.QueueStarted += new DoWorkEventHandler((s, v) => {
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务开始执行 ...");
             });
-            MessageQueue.QueueStoped += new EventHandler((s, v) => {
+            MessageQueue.QueueStoped += new RunWorkerCompletedEventHandler((s, v) => {
                 Console.WriteLine($"<{((TaskQueue<MessageTask>)s).Name}> 任务停止执行 ...");
             });
         }

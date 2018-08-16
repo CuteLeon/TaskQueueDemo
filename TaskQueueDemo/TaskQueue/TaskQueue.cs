@@ -29,12 +29,12 @@ namespace TaskQueueDemo.TaskQueue
         /// <summary>
         /// 队列开始执行
         /// </summary>
-        public event EventHandler QueueStarted;// { add { } remove { } }
+        public event DoWorkEventHandler QueueStarted;// { add { } remove { } }
 
         /// <summary>
         /// 队列停止执行
         /// </summary>
-        public event EventHandler QueueStoped;// { add { } remove { } }
+        public event RunWorkerCompletedEventHandler QueueStoped;// { add { } remove { } }
 
         /// <summary>
         /// 队列进入空闲状态
@@ -116,8 +116,16 @@ namespace TaskQueueDemo.TaskQueue
         public void Start()
         {
             if (TaskWorker.IsBusy) return;
-
             TaskWorker.RunWorkerAsync();
+        }
+
+        /// <summary>
+        /// 任务队列开始执行
+        /// </summary>
+        public void Start(object argument)
+        {
+            if (TaskWorker.IsBusy) return;
+            TaskWorker.RunWorkerAsync(argument);
         }
 
         /// <summary>
@@ -136,7 +144,7 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         private void ExecuteTasks(object sender, DoWorkEventArgs e)
         {
-            QueueStarted?.Invoke(this, null);
+            QueueStarted?.Invoke(this, e);
             Console.WriteLine($"<{Name}> 内 Worker 启动...");
 
             while (true)
@@ -179,7 +187,7 @@ namespace TaskQueueDemo.TaskQueue
             Console.WriteLine($"<{Name}> 队列内剩余任务数：{TaskCount}");
 
             if (e.Error != null) Console.WriteLine($"<{Name}> 队列内发生异常：{e.Error.Message}");
-            QueueStoped?.Invoke(this, null);
+            QueueStoped?.Invoke(this, e);
         }
 
         #region IDisposable Support
