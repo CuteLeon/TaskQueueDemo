@@ -89,7 +89,7 @@ namespace TaskQueueDemo.TaskQueue
         {
             if (task == null) return;
 
-            if (TaskCount == 0)
+            if (TaskCount == 0 && TaskWorker.IsBusy)
             {
                 Console.WriteLine($"<{Name}> 队列信号量 Enqueue-Set()");
                 QueueEvent.Set();
