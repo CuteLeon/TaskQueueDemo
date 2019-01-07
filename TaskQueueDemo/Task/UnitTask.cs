@@ -14,8 +14,8 @@
         /// 
         /// </summary>
         /// <param name="name"></param>
-        public UnitTask(string name) => Name = name;
-        public override string ToString() => $"任务：{Name}";
+        public UnitTask(string name) => this.Name = name;
+        public override string ToString() => $"任务：{this.Name}";
 
         /// <summary>
         /// 执行任务
