@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
-
 using TaskQueueDemo.Task;
 
 namespace TaskQueueDemo.TaskQueue
 {
     /// <summary>
-    /// 任务队列
+    /// .Net 2.0 版本的队列写法
     /// </summary>
-    public class TaskQueue<T> : IDisposable where T : UnitTask
+    public class TaskQueueV2<T> : IDisposable
+        where T : UnitTask
     {
         #region 事件
 
@@ -51,7 +51,7 @@ namespace TaskQueueDemo.TaskQueue
         /// <summary>
         /// 任务列表（线程安全）
         /// </summary>
-        private ConcurrentQueue<T> Tasks { get; set; } = new ConcurrentQueue<T>();
+        private Queue<T> Tasks { get; set; } = new Queue<T>();
 
         /// <summary>
         /// 任务列表（只读）
@@ -81,7 +81,7 @@ namespace TaskQueueDemo.TaskQueue
         private readonly ManualResetEvent QueueEvent = new ManualResetEvent(false);
         #endregion
 
-        public TaskQueue(string name)
+        public TaskQueueV2(string name)
         {
             this.Name = name;
 
@@ -97,14 +97,17 @@ namespace TaskQueueDemo.TaskQueue
         {
             if (task == null) return;
 
-            if (this.TaskCount == 0 && this.TaskWorker.IsBusy)
+            lock (this.QueueEvent)
             {
-                Console.WriteLine($"<{this.Name}> 队列信号量 Enqueue-Set()");
-                this.QueueEvent.Set();
-            }
-            this.Tasks.Enqueue(task);
+                if (this.TaskCount == 0 && this.TaskWorker.IsBusy)
+                {
+                    Console.WriteLine($"<{this.Name}> 队列信号量 Enqueue-Set()");
+                    this.QueueEvent.Set();
+                }
+                this.Tasks.Enqueue(task);
 
-            TaskEnqueued?.Invoke(this, task);
+                TaskEnqueued?.Invoke(this, task);
+            }
         }
 
         /// <summary>
@@ -113,9 +116,18 @@ namespace TaskQueueDemo.TaskQueue
         /// <returns></returns>
         public T Dequeue()
         {
-            bool result = this.Tasks.TryDequeue(out T task);
-            if (result) TaskDequeued?.Invoke(this, null);
-            return task;
+            lock (this.QueueEvent)
+            {
+                try
+                {
+                    T task = this.Tasks.Dequeue();
+                    TaskDequeued?.Invoke(this, null);
+                    return task;
+                }
+                finally
+                {
+                }
+            }
         }
 
         /// <summary>
@@ -206,7 +218,7 @@ namespace TaskQueueDemo.TaskQueue
         {
             this.Stop();
             this.TaskWorker.Dispose();
-            while (this.Tasks.TryDequeue(out T task)) { }
+            this.Tasks.Clear();
             this.Tasks = null;
             this.QueueEvent.Close();
             this.QueueEvent.Dispose();
