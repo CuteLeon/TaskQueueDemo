@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TaskQueueDemo.Task
+﻿namespace TaskQueueDemo.Task
 {
     /// <summary>
     /// 单元任务
@@ -15,6 +9,11 @@ namespace TaskQueueDemo.Task
         /// 任务名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
         public UnitTask(string name) => Name = name;
         public override string ToString() => $"任务：{Name}";
 

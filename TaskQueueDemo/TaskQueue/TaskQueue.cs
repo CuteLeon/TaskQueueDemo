@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 using TaskQueueDemo.Task;
 
@@ -45,19 +42,21 @@ namespace TaskQueueDemo.TaskQueue
         /// 任务队列名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
-        
+
         /// <summary>
         /// 任务列表（线程安全）
         /// </summary>
-        private ConcurrentQueue<T> tasks { get; set; } = new ConcurrentQueue<T>();
+        private ConcurrentQueue<T> Tasks { get; set; } = new ConcurrentQueue<T>();
+
+        /// <summary>
         /// 任务列表（只读）
         /// </summary>
-        public T[] Tasks { get => tasks.ToArray(); }
+        public T[] ReadOnlyTasks { get => this.Tasks.ToArray(); }
 
         /// <summary>
         /// 任务执行线程
         /// </summary>
-        private BackgroundWorker TaskWorker = new BackgroundWorker()
+        private readonly BackgroundWorker TaskWorker = new BackgroundWorker()
         {
             WorkerReportsProgress = false,
             WorkerSupportsCancellation = true
@@ -66,19 +65,19 @@ namespace TaskQueueDemo.TaskQueue
         /// <summary>
         /// 任务控制信号量（防止队列循环空转）
         /// </summary>
-        private volatile ManualResetEvent QueueEvent = new ManualResetEvent(false);
-        
+        private readonly ManualResetEvent QueueEvent = new ManualResetEvent(false);
+
         /// <summary>
         /// 队列内任务总数
         /// </summary>
-        public int TaskCount { get => tasks?.Count() ?? 0; }
+        public int TaskCount { get => this.Tasks?.Count() ?? 0; }
 
         public TaskQueue(string name)
         {
-            Name = name;
-            
-            TaskWorker.DoWork += ExecuteTasks;
-            TaskWorker.RunWorkerCompleted += ExecuteFinished;
+            this.Name = name;
+
+            this.TaskWorker.DoWork += this.ExecuteTasks;
+            this.TaskWorker.RunWorkerCompleted += this.ExecuteFinished;
         }
 
         /// <summary>
@@ -89,12 +88,12 @@ namespace TaskQueueDemo.TaskQueue
         {
             if (task == null) return;
 
-            if (TaskCount == 0 && TaskWorker.IsBusy)
+            if (this.TaskCount == 0 && this.TaskWorker.IsBusy)
             {
-                Console.WriteLine($"<{Name}> 队列信号量 Enqueue-Set()");
-                QueueEvent.Set();
+                Console.WriteLine($"<{this.Name}> 队列信号量 Enqueue-Set()");
+                this.QueueEvent.Set();
             }
-            tasks.Enqueue(task);
+            this.Tasks.Enqueue(task);
 
             TaskEnqueued?.Invoke(this, task);
         }
@@ -105,7 +104,7 @@ namespace TaskQueueDemo.TaskQueue
         /// <returns></returns>
         public T Dequeue()
         {
-            bool result = tasks.TryDequeue(out T task);
+            bool result = this.Tasks.TryDequeue(out T task);
             if (result) TaskDequeued?.Invoke(this, null);
             return task;
         }
@@ -115,8 +114,8 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Start()
         {
-            if (TaskWorker.IsBusy) return;
-            TaskWorker.RunWorkerAsync();
+            if (this.TaskWorker.IsBusy) return;
+            this.TaskWorker.RunWorkerAsync();
         }
 
         /// <summary>
@@ -124,8 +123,8 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Start(object argument)
         {
-            if (TaskWorker.IsBusy) return;
-            TaskWorker.RunWorkerAsync(argument);
+            if (this.TaskWorker.IsBusy) return;
+            this.TaskWorker.RunWorkerAsync(argument);
         }
 
         /// <summary>
@@ -133,10 +132,10 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         public void Stop()
         {
-            if (!TaskWorker.IsBusy) return;
-            TaskWorker.CancelAsync();
-            Console.WriteLine($"<{Name}> 队列信号量 Stop-Set()");
-            QueueEvent.Set();
+            if (!this.TaskWorker.IsBusy) return;
+            this.TaskWorker.CancelAsync();
+            Console.WriteLine($"<{this.Name}> 队列信号量 Stop-Set()");
+            this.QueueEvent.Set();
         }
 
         /// <summary>
@@ -145,35 +144,35 @@ namespace TaskQueueDemo.TaskQueue
         private void ExecuteTasks(object sender, DoWorkEventArgs e)
         {
             QueueStarted?.Invoke(this, e);
-            Console.WriteLine($"<{Name}> 内 Worker 启动...");
+            Console.WriteLine($"<{this.Name}> 内 Worker 启动...");
 
             while (true)
             {
                 try
                 {
                     //Thread.Sleep(1000);
-                    Console.WriteLine($"<{Name}> 队列内任务数：{TaskCount}");
+                    Console.WriteLine($"<{this.Name}> 队列内任务数：{this.TaskCount}");
 
                     if ((sender as BackgroundWorker).CancellationPending) return;
-                    if (TaskCount == 0)
+                    if (this.TaskCount == 0)
                     {
-                        Console.WriteLine($"<{Name}> 队列信号量 Execute-WaitOne");
+                        Console.WriteLine($"<{this.Name}> 队列信号量 Execute-WaitOne");
                         //队列进入空闲状态，触发空闲事件
                         Idle?.Invoke(this, null);
-                        QueueEvent.Reset();
-                        QueueEvent.WaitOne();
+                        this.QueueEvent.Reset();
+                        this.QueueEvent.WaitOne();
                         //WaitOne 之后要先 continue 一次
                         continue;
                     }
 
-                    T task = Dequeue();
+                    T task = this.Dequeue();
                     if (task == null) continue;
 
                     task.Execute();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"<{Name}> 队列内发生异常：{ex.Message}");
+                    Console.WriteLine($"<{this.Name}> 队列内发生异常：{ex.Message}");
                 }
             }
         }
@@ -183,10 +182,10 @@ namespace TaskQueueDemo.TaskQueue
         /// </summary>
         private void ExecuteFinished(object sender, RunWorkerCompletedEventArgs e)
         {
-            Console.WriteLine($"<{Name}> 内 Worker 停止...");
-            Console.WriteLine($"<{Name}> 队列内剩余任务数：{TaskCount}");
+            Console.WriteLine($"<{this.Name}> 内 Worker 停止...");
+            Console.WriteLine($"<{this.Name}> 队列内剩余任务数：{this.TaskCount}");
 
-            if (e.Error != null) Console.WriteLine($"<{Name}> 队列内发生异常：{e.Error.Message}");
+            if (e.Error != null) Console.WriteLine($"<{this.Name}> 队列内发生异常：{e.Error.Message}");
             QueueStoped?.Invoke(this, e);
         }
 
@@ -194,12 +193,12 @@ namespace TaskQueueDemo.TaskQueue
 
         public void Dispose()
         {
-            Stop();
-            TaskWorker.Dispose();
-            while (tasks.TryDequeue(out T task)) { }
-            tasks = null;
-            QueueEvent.Close();
-            
+            this.Stop();
+            this.TaskWorker.Dispose();
+            while (this.Tasks.TryDequeue(out T task)) { }
+            this.Tasks = null;
+            this.QueueEvent.Close();
+
             //TODO: 感觉这里不太对...
             GC.SuppressFinalize(this);
         }
